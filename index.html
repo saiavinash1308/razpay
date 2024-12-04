@@ -84,7 +84,7 @@
                         .then(response => {
                             // Notify Unity to close the WebView after failure
                             window.postMessage('payment_failed', '*');
-                            window.close(); // Close the window if running in a regular browser
+                            window.close(); // Close the window if running in a regular b
                         })
                         .catch(error => {
                             console.error("Error while sending failure data:", error);
