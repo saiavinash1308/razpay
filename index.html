@@ -22,20 +22,17 @@
 </head>
 <body>
     <script>
-        // Extract dynamic data from query parameters
         const queryParams = new URLSearchParams(window.location.search);
         const orderId = queryParams.get('orderId');
         const amount = queryParams.get('amount');
 
-        // Validate orderId and amount
         if (!orderId || !amount) {
             console.error("Order ID or Amount is missing!");
             alert("Invalid Payment Details");
         } else {
-            // Initialize Razorpay options
             var options = {
-                "key": "rzp_test_ILhEsA5oxLGYj5", // Your Key ID
-                "amount": amount, 
+                "key": "rzp_test_ILhEsA5oxLGYj5",
+                "amount": amount,
                 "currency": "INR",
                 "name": "Acme Corp",
                 "description": "Test Transaction",
@@ -46,39 +43,23 @@
                     "color": "#3399cc"
                 },
                 "handler": function (response) {
-                    // Send success response back to Unity
-                    console.log(response.razorpay_payment_id);
-                console.log(response.razorpay_order_id);
-                console.log(response.razorpay_signature);
-
-                fetch(`http://localhost:3001/api/transactions/update`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_signature: response.razorpay_signature,
-                        status: 'paid' // Mark as paid on success
-                    }),
-                });
+                    window.Unity && window.Unity.call(JSON.stringify({
+                        status: 'success',
+                        paymentId: response.razorpay_payment_id,
+                        orderId: response.razorpay_order_id,
+                        signature: response.razorpay_signature
+                    }));
                 },
                 "modal": {
                     "ondismiss": function () {
-                        // Send failure response back to Unity
-                        fetch(`http://localhost:3001/api/transactions/update`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            status: 'failed' // Mark as failed if dismissed or unsuccessful
-                        }),
-                      });
+                        window.Unity && window.Unity.call(JSON.stringify({
+                            status: 'failed'
+                        }));
                     }
                 }
             };
 
             var rzp1 = new Razorpay(options);
-
-            // Automatically open the Razorpay payment modal when the page loads
             window.onload = function () {
                 rzp1.open();
             };
