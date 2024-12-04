@@ -48,30 +48,47 @@
                 "handler": function (response) {
                     // Send success response back to Unity
                     console.log(response.razorpay_payment_id);
-                console.log(response.razorpay_order_id);
-                console.log(response.razorpay_signature);
+                    console.log(response.razorpay_order_id);
+                    console.log(response.razorpay_signature);
 
-                fetch(`http://localhost:3001/api/transactions/update`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_signature: response.razorpay_signature,
-                        status: 'paid' // Mark as paid on success
-                    }),
-                });
-                },
-                "modal": {
-                    "ondismiss": function () {
-                        // Send failure response back to Unity
-                        fetch(`http://localhost:3001/api/transactions/update`, {
+                    // Send payment data to the backend
+                    fetch(`http://localhost:3001/api/transactions/update`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            status: 'failed' // Mark as failed if dismissed or unsuccessful
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                            status: 'paid' // Mark as paid on success
                         }),
-                      });
+                    })
+                    .then(response => {
+                        // Notify Unity to close the WebView after successful payment
+                        window.postMessage('payment_success', '*');
+                        window.close(); // Close the window if running in a regular browser
+                    })
+                    .catch(error => {
+                        console.error("Error while sending payment data:", error);
+                    });
+                },
+                "modal": {
+                    "ondismiss": function () {
+                        // Send failure response back to Unity if the payment was dismissed or failed
+                        fetch(`http://localhost:3001/api/transactions/update`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                status: 'failed' // Mark as failed if dismissed or unsuccessful
+                            }),
+                        })
+                        .then(response => {
+                            // Notify Unity to close the WebView after failure
+                            window.postMessage('payment_failed', '*');
+                            window.close(); // Close the window if running in a regular browser
+                        })
+                        .catch(error => {
+                            console.error("Error while sending failure data:", error);
+                        });
                     }
                 }
             };
